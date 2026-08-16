@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A capstone comparing a transparent baseline heuristic against a Random Forest classifier for prioritizing search-snippet refreshes, using the FlyRank ML Internship dataset.">
+    <meta name="color-scheme" content="light dark">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
+    <title>FlyRank Capstone: Snippet Refresh Modeling</title>
+
+    <!-- Set theme before first paint to avoid a flash of the wrong mode -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('flyrank-theme');
+          var theme = stored || 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Ambient aurora field, sits behind everything; cards pick up its color through backdrop-filter -->
+    <div class="aurora" aria-hidden="true">
+        <span class="aurora-blob aurora-blob--one"></span>
+        <span class="aurora-blob aurora-blob--two"></span>
+        <span class="aurora-blob aurora-blob--three"></span>
+        <span class="aurora-blob aurora-blob--four"></span>
+    </div>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="cursor-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+        <div class="topbar__inner">
+            <div class="topbar__brand">
+                <span class="topbar__mark">FR</span>
+                <span class="topbar__brand-text">FlyRank Capstone</span>
+            </div>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch between light and dark mode" aria-pressed="false">
+                <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4.2"/>
+                    <path d="M12 2.5v2.4M12 19.1v2.4M4.2 12H1.8M22.2 12h-2.4M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7"/>
+                </svg>
+                <svg class="icon icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M20.4 14.7A8.6 8.6 0 0 1 9.3 3.6a8.6 8.6 0 1 0 11.1 11.1Z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="hero-wrapper">
+        <!-- Hero -->
+        <div class="card hero" id="top">
+            <div class="hero__main">
+                <p class="eyebrow">FlyRank ML Internship &middot; Capstone Paper</p>
+                <h1>Identifying Failing Search Snippets at Scale</h1>
+                <div class="meta-row">
+                    <span class="meta-chip"><span class="meta-chip__label">Author</span>Shiam Ahmed Sizan</span>
+                    <span class="meta-chip"><span class="meta-chip__label">Lane</span>Content Refresh / Opportunity Scoring</span>
+                </div>
+            </div>
+            <div class="hero__stat">
+                <span class="hero__stat-label">Precision@50</span>
+                <span class="hero__stat-value">0.94</span>
+                <span class="hero__stat-caption">Baseline heuristic vs. 0.38 for the ML model &mdash; roughly a 2.5&times; margin</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- Abstract -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">00</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </span>
+                <h2>Abstract</h2>
+            </div>
+            <p>Search engine snippets naturally decay as competitors aggressively optimize to steal clicks. This paper evaluates the most effective way to identify high-value, underperforming search snippets using real-world telemetry from the FlyRank ML Internship dataset. We compared a Random Forest Classifier trained on content features against a deterministic Baseline Rule sorting by &ldquo;Wasted Impressions.&rdquo; Our results show the simple Baseline Rule achieved a massive 0.94 Precision@50, severely outperforming the ML model (0.38 Precision@50 under a strict client-grouped split). We output a directional, human-reviewed action playbook to help SEO teams instantly identify pages bleeding traffic.</p>
+        </div>
+
+        <!-- Problem Framing -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">01</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                </span>
+                <h2>Problem Framing</h2>
+            </div>
+            <p><strong>Decision Supported:</strong> Helping SEO Content teams prioritize which pages need their <code>&lt;title&gt;</code> and <code>&lt;meta description&gt;</code> refreshed first.</p>
+            <p><strong>Unit of Analysis:</strong> The page-level search snippet.</p>
+            <p><strong>Why ML/Data helps:</strong> Manual auditing of millions of URLs is impossible. By surfacing the snippets bleeding the most clicks relative to their impressions, we can direct human editors strictly to the highest-ROI opportunities.</p>
+        </div>
+
+        <!-- Data Safety -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">02</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </span>
+                <h2>Data Safety</h2>
+            </div>
+            <p>We used the March 2026 <code>fact_content_daily_performance</code> and <code>dim_content</code> partitions. We strictly excluded all PII and future-looking label-derived fields (like <code>trend_direction</code> and <code>is_declining_label</code>) to prevent data leakage.</p>
+        </div>
+
+        <!-- Baseline -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">03</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                </span>
+                <h2>Baseline Rule</h2>
+            </div>
+            <p>We built a transparent, human-readable rule sorting pages by &ldquo;Wasted Impressions&rdquo;: <code>impressions * (1.0 - ctr)</code>. This explicitly targets snippets that Google surfaces to thousands of users, but that users refuse to click.</p>
+        </div>
+
+        <!-- Methodology -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">04</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H15M10 3V8L3 19C2.4 20.1 3.2 21 4.5 21H19.5C20.8 21 21.6 20.1 21 19L14 8V3M3 15H21"></path></svg>
+                </span>
+                <h2>Methodology</h2>
+            </div>
+            <p><strong>Target Label:</strong> A snippet is marked as &ldquo;failing&rdquo; if it receives &gt;1,000 impressions but has a CTR &lt; 0.01.</p>
+            <p><strong>Model:</strong> Random Forest Classifier trained on text features (<code>word_count</code>, <code>search_volume</code>).</p>
+        </div>
+
+        <!-- Evaluation -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">05</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </span>
+                <h2>Evaluation &amp; Audit</h2>
+            </div>
+            <p>To prevent the model from memorizing client behavior, we utilized a strict <code>GroupKFold</code> split grouped by <code>client_hash_id</code>.</p>
+
+            <div class="metric-chart" role="img" aria-label="Precision at 50 by method: Base Rate 0.2083, Baseline Rule 0.9400, Random Forest Classifier 0.3800">
+                <div class="metric-bar">
+                    <div class="metric-bar__label">Base Rate (Random Guessing) <span class="metric-bar__value">0.2083</span></div>
+                    <div class="metric-bar__track"><div class="metric-bar__fill" style="--val:20.83%"></div></div>
+                </div>
+                <div class="metric-bar metric-bar--winner">
+                    <div class="metric-bar__label">Baseline Rule (Wasted Impressions) <span class="badge">Best</span><span class="metric-bar__value">0.9400</span></div>
+                    <div class="metric-bar__track"><div class="metric-bar__fill" style="--val:94%"></div></div>
+                </div>
+                <div class="metric-bar">
+                    <div class="metric-bar__label">Random Forest Classifier (Grouped Split) <span class="metric-bar__value">0.3800</span></div>
+                    <div class="metric-bar__track"><div class="metric-bar__fill" style="--val:38%"></div></div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <tr>
+                        <th>Method</th>
+                        <th>Precision@50</th>
+                    </tr>
+                    <tr>
+                        <td>Base Rate (Random Guessing)</td>
+                        <td>0.2083</td>
+                    </tr>
+                    <tr class="highlight">
+                        <td>Baseline Rule (Wasted Impressions)</td>
+                        <td>0.9400</td>
+                    </tr>
+                    <tr>
+                        <td>Random Forest Classifier (Grouped Split)</td>
+                        <td>0.3800</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p><strong>Error Analysis:</strong> The Random Forest severely over-indexed on <code>word_count</code>, falsely assuming massive pages automatically receive high impressions. The drop from random-split to grouped-split proved the ML model was merely memorizing clients.</p>
+        </div>
+
+        <!-- Limitations -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">06</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </span>
+                <h2>Limitations</h2>
+            </div>
+            <p><strong>Search Intent Blindness:</strong> This pipeline does not know user search intent. It cannot tell the difference between a bad snippet and a &ldquo;zero-click&rdquo; informational query (e.g., &ldquo;what is the capital of France&rdquo;) where the user gets the answer directly on the Google search page without needing to click.</p>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">07</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                </span>
+                <h2>Ranked Recommendations (Action Playbook)</h2>
+            </div>
+            <ul>
+                <li><strong>Action:</strong> <code>REFRESH_SNIPPET</code> for the top 50 flagged items.</li>
+                <li><strong>Human Review Required:</strong> Editors must manually search the query to ensure it isn&rsquo;t an informational &ldquo;zero-click&rdquo; query before rewriting the title.</li>
+                <li><strong>The NO-GO List:</strong> Never hook this queue up to an LLM to automatically overwrite tags without human approval.</li>
+                <li><strong>Monitoring:</strong> Track the 30-day post-refresh CTR. If it doesn&rsquo;t lift by &gt;10% against a control, review the logic.</li>
+            </ul>
+        </div>
+
+        <!-- Reproducibility -->
+        <div class="card">
+            <div class="section-head">
+                <span class="section-num">08</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                </span>
+                <h2>Reproducibility</h2>
+            </div>
+            <p>All validation harnesses, leakage audits, and queue generation scripts are open-source and reproducible.</p>
+            <a class="link-pill" href="https://github.com/Sizan99/ml-pipeline" target="_blank" rel="noopener noreferrer">
+                <span>View the Repository</span>
+                <svg class="link-pill__icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5"/></svg>
+            </a>
+        </div>
+
+        <!-- Acknowledgments -->
+        <div class="card footer-card">
+            <div class="section-head section-head--center">
+                <span class="section-num">09</span>
+                <span class="icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </span>
+                <h2>Acknowledgments &amp; Data Credit</h2>
+            </div>
+            <p>Built on the FlyRank ML Internship dataset.</p>
+            <a class="link-pill" href="https://flyrank.ai" target="_blank" rel="noopener noreferrer">
+                <span>flyrank.ai</span>
+                <svg class="link-pill__icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5"/></svg>
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var toggle = document.getElementById('themeToggle');
+
+        function syncPressed() {
+          toggle.setAttribute('aria-pressed', root.getAttribute('data-theme') === 'dark' ? 'true' : 'false');
+        }
+        syncPressed();
+
+        toggle.addEventListener('click', function () {
+          var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          root.setAttribute('data-theme', next);
+          try { localStorage.setItem('flyrank-theme', next); } catch (e) {}
+          syncPressed();
+        });
+
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var revealTargets = document.querySelectorAll('.card:not(.hero)');
+
+        if (!reduceMotion && 'IntersectionObserver' in window) {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+          revealTargets.forEach(function (el) { io.observe(el); });
+        } else {
+          revealTargets.forEach(function (el) { el.classList.add('is-visible'); });
+        }
+
+        // Cursor glow + card tilt — only for devices with a real mouse, and
+        // only when the person hasn't asked for reduced motion.
+        var canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+        if (canHover && !reduceMotion) {
+          var glow = document.querySelector('.cursor-glow');
+          var glowX = window.innerWidth / 2;
+          var glowY = window.innerHeight / 2;
+          var glowFrame = null;
+
+          function paintGlow() {
+            glow.style.transform = 'translate3d(' + glowX + 'px,' + glowY + 'px,0)';
+            glowFrame = null;
+          }
+
+          window.addEventListener('mousemove', function (e) {
+            glowX = e.clientX;
+            glowY = e.clientY;
+            glow.classList.add('is-active');
+            if (!glowFrame) glowFrame = requestAnimationFrame(paintGlow);
+          }, { passive: true });
+
+          window.addEventListener('mouseleave', function () {
+            glow.classList.remove('is-active');
+          });
+
+          var maxTilt = 5; // degrees — kept small so it reads as a nudge, not a spin
+          var tiltCards = document.querySelectorAll('.card');
+
+          tiltCards.forEach(function (card) {
+            card.addEventListener('mouseenter', function () {
+              card.classList.add('is-tilting');
+            });
+
+            card.addEventListener('mousemove', function (e) {
+              var rect = card.getBoundingClientRect();
+              var px = (e.clientX - rect.left) / rect.width;
+              var py = (e.clientY - rect.top) / rect.height;
+              var rotY = (px - 0.5) * (maxTilt * 2);
+              var rotX = (0.5 - py) * (maxTilt * 2);
+              card.style.setProperty('--tilt-x', rotX.toFixed(2) + 'deg');
+              card.style.setProperty('--tilt-y', rotY.toFixed(2) + 'deg');
+              card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
+              card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
+            });
+
+            card.addEventListener('mouseleave', function () {
+              card.classList.remove('is-tilting');
+              card.style.setProperty('--tilt-x', '0deg');
+              card.style.setProperty('--tilt-y', '0deg');
+            });
+          });
+        }
+      })();
+    </script>
+</body>
+</html>
